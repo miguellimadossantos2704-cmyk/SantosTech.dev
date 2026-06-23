@@ -2156,6 +2156,16 @@ body {
        initCharacter('canvas-si', './assets/ironman.glb',   0x0A4CFF);
        ══════════════════════════════════════════════ */
   </script>
+  <script>
+  // Cursor de Elite - Sem lag
+  const cursor = document.querySelector('#cursor');
+  const cursorRing = document.querySelector('#cursor-ring');
 
+  window.addEventListener('mousemove', (e) => {
+    // GSAP joga a posição direto na tela sem esperar o CSS
+    gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0 });
+    gsap.to(cursorRing, { x: e.clientX, y: e.clientY, duration: 0.2, ease: "power2.out" });
+  });
+</script>
 </body>
 </html>
