@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEV.LAB — Full Stack Developer</title>
+
+  <!-- ─────────────────────────────────────────────
+       FONTES
+       ───────────────────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+
+  <!-- ─────────────────────────────────────────────
+       GSAP (único script externo)
+       ───────────────────────────────────────────── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+
+  <!-- ─────────────────────────────────────────────
+       ESTILOS
+       ───────────────────────────────────────────── -->
+  <style>
+    /* ══════════════════════════════════════════════
+       0. TOKENS / VARIÁVEIS GLOBAIS
+          Mude aqui → site inteiro atualiza.
+       ══════════════════════════════════════════════ */
+    :root {
+      /* Paleta Deadpool */
+      --dp-red:        #C0001A;
+      --dp-red-mid:    #E8002A;
+      --dp-red-glow:   #FF1A35;
+      --dp-red-dim:    rgba(192, 0, 26, 0.12);
+
+      /* Paleta Iron Man / Stark Industries */
+      --si-blue:       #0A4CFF;
+      --si-blue-mid:   #1E6AFF;
+      --si-blue-glow:  #3D9BFF;
+      --si-blue-dim:   rgba(10, 76, 255, 0.12);
+
+      /* Fundos */
+      --bg-void:       #03030A;
+      --bg-deep:       #070712;
+      --bg-panel:      #0C0C1E;
+      --bg-glass:      rgba(12, 12, 30, 0.55);
+
+      /* Tipografia */
+      --text-primary:  #E8E8F0;
+      --text-secondary:#8888AA;
+      --text-dim:      #3A3A5A;
+
+      /* Grid / estrutura */
+      --grid-line:     rgba(255, 255, 255, 0.028);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-active: rgba(255, 255, 255, 0.14);
+
+      /* Fontes */
+      --font-hud:  'Orbitron', monospace;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'Share Tech Mono', monospace;
+
+      /* Transições */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in:  cubic-bezier(0.7, 0, 0.84, 0);
+    }
+
+    /* ══════════════════════════════════════════════
+       1. RESET + BASE
+       ══════════════════════════════════════════════ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-void);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       2. CURSOR PERSONALIZADO
+       ══════════════════════════════════════════════ */
+    body { cursor: none; }
+
+    #cursor {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: width 0.2s var(--ease-out),
+                  height 0.2s var(--ease-out),
+                  background 0.2s;
+      mix-blend-mode: difference;
+    }
+
+    #cursor-ring {
+      position: fixed;
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: width 0.35s var(--ease-out),
+                  height 0.35s var(--ease-out),
+                  border-color 0.2s;
+    }
+
+    body:has(a:hover) #cursor,
+    body:has(button:hover) #cursor { width: 6px; height: 6px; }
+    body:has(a:hover) #cursor-ring,
+    body:has(button:hover) #cursor-ring {
+      width: 52px;
+      height: 52px;
+      border-color: var(--dp-red-glow);
+    }
+
+    /* ══════════════════════════════════════════════
+       3. GRID OVERLAY (decorativo, fundo do hero)
+       ══════════════════════════════════════════════ */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      /* SVG inline como background — linhas de grade */
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Fade nas bordas do grid */
+    .grid-overlay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        ellipse 80% 70% at 50% 50%,
+        transparent 30%,
+        var(--bg-void) 100%
+      );
+    }
+
+    /* ══════════════════════════════════════════════
+       4. SCANLINES (efeito CRT sutil)
+       ══════════════════════════════════════════════ */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9000;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.03) 3px,
+        rgba(0, 0, 0, 0.03) 4px
+      );
+    }
+
+    /* ══════════════════════════════════════════════
+       5. NAVEGAÇÃO
+       ══════════════════════════════════════════════ */
+    nav {
+      position: fixed;
+      top: 0;
+      inset-inline: 0;
+      z-index: 1000;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 0 48px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(3, 3, 10, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .nav__logo {
+      font-family: var(--font-hud);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: var(--text-primary);
+      text-transform: uppercase;
+    }
+
+    .nav__logo-sep {
+      display: inline-block;
+      width: 1px;
+      height: 14px;
+      background: var(--border-active);
+      margin: 0 14px;
+      vertical-align: middle;
+    }
+
+    .nav__logo-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: 0.15em;
+    }
+
+    .nav__links {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      margin-left: auto;
+      list-style: none;
+    }
+
+    .nav__links a {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      text-decoration: none;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .nav__links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--dp-red-glow);
+      transition: width 0.3s var(--ease-out);
+    }
+
+    .nav__links a:hover { color: var(--text-primary); }
+    .nav__links a:hover::after { width: 100%; }
+
+    .nav__status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 48px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--si-blue-glow);
+    }
+
+    .nav__status-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--si-blue-glow);
+      animation: pulse-dot 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(61, 155, 255, 0.5); }
+      50%       { opacity: 0.6; box-shadow: 0 0 0 6px rgba(61, 155, 255, 0); }
+    }
+
+    /* Mobile nav */
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav__links { display: none; }
+      .nav__status { margin-left: auto; }
+    }
+
+    /* ══════════════════════════════════════════════
+       6. HERO SECTION
+       ══════════════════════════════════════════════ */
+    #hero {
+      position: relative;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr;
+      overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      #hero {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+      }
+    }
+
+    /* ── 6a. Painel esquerdo (conteúdo) ── */
+    .hero__left {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 100px 64px 80px;
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    @media (max-width: 900px) {
+      .hero__left { padding: 100px 32px 60px; border-right: none; border-bottom: 1px solid var(--border-subtle); }
+    }
+
+    /* Gradiente de fundo esquerda (vermelho Deadpool) */
+    .hero__left::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 0% 100%, rgba(192,0,26,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 30% 20%,  rgba(192,0,26,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── 6b. Painel direito (assets / canvas) ── */
+    .hero__right {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      align-items: stretch;
+    }
+
+    @media (max-width: 900px) {
+      .hero__right { min-height: 360px; }
+    }
+
+    /* Gradiente de fundo direita (azul Stark) */
+    .hero__right::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 100% 0%, rgba(10,76,255,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 70% 80%, rgba(10,76,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── 6c. Eyebrow / tag do sistema ── */
+    .hero__eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--dp-red-mid);
+      margin-bottom: 28px;
+      opacity: 0;
+      transform: translateY(12px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero__eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--dp-red-mid);
+      flex-shrink: 0;
+    }
+
+    /* ── 6d. Título principal com GLITCH ── */
+    .hero__title {
+      font-family: var(--font-hud);
+      font-size: clamp(42px, 6vw, 90px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    /* Linha "Full Stack" recebe o glitch */
+    .hero__title--glitch {
+      position: relative;
+      display: inline-block;
+    }
+
+    .hero__title--glitch::before,
+    .hero__title--glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      color: var(--text-primary);
+    }
+
+    .hero__title--glitch::before {
+      color: var(--dp-red-glow);
+      animation: glitch-a 4s steps(1) infinite;
+    }
+
+    .hero__title--glitch::after {
+      color: var(--si-blue-glow);
+      animation: glitch-b 4s steps(1) infinite;
+    }
+
+    @keyframes glitch-a {
+      0%, 90%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0); }
+      92%           { clip-path: inset(0 0 88% 0); transform: translate(-3px, 0); }
+      94%           { clip-path: inset(55% 0 30% 0); transform: translate(3px, 0); }
+      96%           { clip-path: inset(20% 0 65% 0); transform: translate(-2px, 0); }
+      98%           { clip-path: inset(75% 0 10% 0); transform: translate(2px, 0); }
+    }
+
+    @keyframes glitch-b {
+      0%, 91%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0); }
+      93%           { clip-path: inset(40% 0 45% 0); transform: translate(3px, 1px); }
+      95%           { clip-path: inset(80% 0 5% 0);  transform: translate(-3px, -1px); }
+      97%           { clip-path: inset(10% 0 80% 0); transform: translate(2px, 0); }
+      99%           { clip-path: inset(60% 0 25% 0); transform: translate(-2px, 1px); }
+    }
+
+    .hero__title-accent {
+      color: var(--dp-red-mid);
+    }
+
+    /* ── 6e. Subtítulo ── */
+    .hero__subtitle {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 380px;
+      margin-top: 28px;
+      margin-bottom: 48px;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    /* ── 6f. CTAs ── */
+    .hero__ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    .btn {
+      font-family: var(--font-hud);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 14px 32px;
+      cursor: pointer;
+      border: none;
+      position: relative;
+      transition: color 0.25s, background 0.25s, box-shadow 0.25s;
+      display: inline-block;
+    }
+
+    .btn--primary {
+      background: var(--dp-red);
+      color: #fff;
+      box-shadow: 0 0 0 0 rgba(192, 0, 26, 0);
+    }
+
+    .btn--primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--dp-red-glow);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .btn--primary:hover {
+      background: var(--dp-red-mid);
+      box-shadow: 0 0 28px rgba(255, 26, 53, 0.4);
+    }
+
+    .btn--primary:hover::before { opacity: 1; }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--si-blue-glow);
+      border: 1px solid rgba(61, 155, 255, 0.35);
+    }
+
+    .btn--ghost:hover {
+      background: var(--si-blue-dim);
+      border-color: var(--si-blue-glow);
+      box-shadow: 0 0 24px rgba(61, 155, 255, 0.25);
+    }
+
+    /* ── 6g. Coordenadas / dados HUD (canto inferior esquerdo) ── */
+    .hero__coords {
+      position: absolute;
+      bottom: 40px;
+      left: 64px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      opacity: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .hero__coords { left: 32px; }
+    }
+
+    .hero__coords span { display: block; }
+
+    /* ══════════════════════════════════════════════
+       7. ASSET CONTAINERS
+          → Substitua o conteúdo interno por sua
+            imagem, vídeo ou modelo Three.js.
+       ══════════════════════════════════════════════ */
+
+    /* Container genérico compartilhado */
+    .asset-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 480px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 32px;
+    }
+
+    /* Linha divisória vertical entre os dois containers */
+    .asset-container + .asset-container {
+      border-left: 1px solid var(--border-subtle);
+    }
+
+    /* Cabeçalho de identificação (data-tag) */
+    .asset-container__tag {
+      position: absolute;
+      top: 28px;
+      left: 24px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .asset-container__tag-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Borda superior colorida por personagem */
+    .asset-container--dp  { border-top: 1px solid rgba(192,0,26,0.4); }
+    .asset-container--si  { border-top: 1px solid rgba(10,76,255,0.4); }
+
+    .asset-container--dp .asset-container__tag-dot { background: var(--dp-red-mid); }
+    .asset-container--si .asset-container__tag-dot { background: var(--si-blue-glow); }
+    .asset-container--dp .asset-container__tag { color: rgba(192,0,26,0.6); }
+    .asset-container--si .asset-container__tag { color: rgba(61,155,255,0.6); }
+
+    /* ── Placeholder visual (glassmorphism + neon glow) ── */
+    .asset-placeholder {
+      position: absolute;
+      /*
+        ╔════════════════════════════════════════════╗
+        ║  ZONA DE SUBSTITUIÇÃO — PERSONAGEM         ║
+        ║                                            ║
+        ║  Opção A — Imagem PNG com fundo            ║
+        ║  transparente:                             ║
+        ║    Remova este elemento .asset-placeholder ║
+        ║    e adicione uma <img> aqui com           ║
+        ║    object-fit: contain; height: 100%       ║
+        ║                                            ║
+        ║  Opção B — Modelo 3D (Three.js / glTF):   ║
+        ║    Remova este elemento e use o <canvas>   ║
+        ║    abaixo. Carregue o .glb com:            ║
+        ║    import { GLTFLoader } from 'three/...'  ║
+        ║    loader.load('./modelo.glb', (gltf) => { ║
+        ║      scene.add(gltf.scene);                ║
+        ║    });                                     ║
+        ╚════════════════════════════════════════════╝
+      */
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Silhueta blur + glow — remove quando tiver asset real */
+    .asset-silhouette {
+      width: 55%;
+      max-width: 220px;
+      aspect-ratio: 1 / 2.4;
+      border-radius: 4px;
+      filter: blur(0px);
+      position: relative;
+    }
+
+    .asset-container--dp .asset-silhouette {
+      background: linear-gradient(
+        170deg,
+        rgba(192, 0, 26, 0.25) 0%,
+        rgba(80, 0, 10, 0.12) 60%,
+        transparent 100%
+      );
+      box-shadow:
+        0 0 60px rgba(192, 0, 26, 0.15),
+        0 0 120px rgba(192, 0, 26, 0.06),
+        inset 0 0 40px rgba(192, 0, 26, 0.08);
+    }
+
+    .asset-container--si .asset-silhouette {
+      background: linear-gradient(
+        170deg,
+        rgba(10, 76, 255, 0.22) 0%,
+        rgba(5, 30, 100, 0.10) 60%,
+        transparent 100%
+      );
+      box-shadow:
+        0 0 60px rgba(61, 155, 255, 0.15),
+        0 0 120px rgba(61, 155, 255, 0.06),
+        inset 0 0 40px rgba(61, 155, 255, 0.08);
+    }
+
+    /* Crosshair center no placeholder */
+    .asset-silhouette::before,
+    .asset-silhouette::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .asset-silhouette::before {
+      width: 1px;
+      height: 40%;
+      background: linear-gradient(to bottom, transparent, var(--border-active), transparent);
+    }
+
+    .asset-silhouette::after {
+      width: 40%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border-active), transparent);
+    }
+
+    /*
+      ── Canvas Three.js ──────────────────────────
+      Este <canvas> está oculto por padrão.
+      Quando você inicializar o renderer do Three.js
+      com este elemento, remova a classe .hidden
+      e remova o .asset-silhouette acima.
+    */
+    .asset-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: none; /* ← MUDE PARA block QUANDO USAR THREE.JS */
+    }
+
+    /* ── Label inferior do container ── */
+    .asset-label {
+      position: relative;
+      z-index: 2;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+
+    .asset-container--dp .asset-label { color: rgba(192, 0, 26, 0.5); }
+    .asset-container--si .asset-label { color: rgba(61, 155, 255, 0.5); }
+
+    /* Barras de scan animadas (efeito loading / análise) */
+    .asset-scanbar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .asset-container--dp .asset-scanbar {
+      background: linear-gradient(90deg, transparent, var(--dp-red-glow), transparent);
+      animation: scan-vertical 5s ease-in-out infinite;
+    }
+
+    .asset-container--si .asset-scanbar {
+      background: linear-gradient(90deg, transparent, var(--si-blue-glow), transparent);
+      animation: scan-vertical 5s ease-in-out infinite 2.5s;
+    }
+
+    @keyframes scan-vertical {
+      0%   { top: 0%;   opacity: 0; }
+      10%  { opacity: 0.4; }
+      90%  { opacity: 0.4; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    /* Cantos HUD nos containers */
+    .hud-corners {
+      position: absolute;
+      inset: 12px;
+      pointer-events: none;
+    }
+
+    .hud-corners::before,
+    .hud-corners::after,
+    .hud-corners > span::before,
+    .hud-corners > span::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+    }
+
+    .hud-corners::before {
+      top: 0; left: 0;
+      border-top: 1px solid var(--border-active);
+      border-left: 1px solid var(--border-active);
+    }
+
+    .hud-corners::after {
+      top: 0; right: 0;
+      border-top: 1px solid var(--border-active);
+      border-right: 1px solid var(--border-active);
+    }
+
+    .hud-corners > span::before {
+      bottom: 0; left: 0;
+      border-bottom: 1px solid var(--border-active);
+      border-left: 1px solid var(--border-active);
+    }
+
+    .hud-corners > span::after {
+      bottom: 0; right: 0;
+      border-bottom: 1px solid var(--border-active);
+      border-right: 1px solid var(--border-active);
+    }
+
+    /* ══════════════════════════════════════════════
+       8. LINHA DIVISÓRIA CENTRAL (entre hero__left e hero__right)
+       ══════════════════════════════════════════════ */
+    .hero__divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+      pointer-events: none;
+      z-index: 20;
+      overflow: hidden;
+    }
+
+    .hero__divider-inner {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        var(--dp-red-mid) 35%,
+        var(--si-blue-glow) 65%,
+        transparent 100%
+      );
+      animation: divider-pulse 4s ease-in-out infinite;
+      opacity: 0.35;
+    }
+
+    @keyframes divider-pulse {
+      0%, 100% { opacity: 0.25; transform: scaleY(1); }
+      50%       { opacity: 0.50; transform: scaleY(0.98); }
+    }
+
+    /* ══════════════════════════════════════════════
+       9. INDICADOR DE SCROLL
+       ══════════════════════════════════════════════ */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 40px;
+      right: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+    }
+
+    .scroll-indicator__label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
+    .scroll-indicator__line {
+      width: 1px;
+      height: 48px;
+      background: linear-gradient(to bottom, var(--text-dim), transparent);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scroll-indicator__line::after {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--text-primary);
+      animation: scroll-line 2s ease-in-out infinite;
+    }
+
+    @keyframes scroll-line {
+      0%   { top: -100%; }
+      100% { top: 200%; }
+    }
+
+    /* ══════════════════════════════════════════════
+       10. SEÇÃO — STATS / DATA READOUT
+           (abaixo do hero, faixa de dados)
+       ══════════════════════════════════════════════ */
+    #stats {
+      position: relative;
+      background: var(--bg-deep);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 40px 64px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      #stats { grid-template-columns: repeat(2, 1fr); padding: 32px 24px; }
+    }
+
+    .stat-item {
+      padding: 24px 32px;
+      border-right: 1px solid var(--border-subtle);
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .stat-item:last-child { border-right: none; }
+
+    @media (max-width: 768px) {
+      .stat-item:nth-child(2) { border-right: none; }
+      .stat-item:nth-child(3) { border-right: 1px solid var(--border-subtle); }
+    }
+
+    .stat-item__value {
+      font-family: var(--font-hud);
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .stat-item__value--red  { color: var(--dp-red-mid); }
+    .stat-item__value--blue { color: var(--si-blue-glow); }
+
+    .stat-item__label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ══════════════════════════════════════════════
+       11. SEÇÃO — SOBRE / DOSSIER
+       ══════════════════════════════════════════════ */
+    #about {
+      position: relative;
+      padding: 120px 64px;
+      background: var(--bg-void);
+    }
+
+    @media (max-width: 768px) { #about { padding: 80px 24px; } }
+
+    .section-header {
+      margin-bottom: 64px;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--dp-red-mid);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--dp-red-mid);
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-family: var(--font-hud);
+      font-size: clamp(28px, 4vw, 52px);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 80px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .about-grid { grid-template-columns: 1fr; gap: 48px; }
+    }
+
+    /* Glassmorphism card do dossier */
+    .dossier-card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 40px;
+      opacity: 0;
+      transform: translateX(-20px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Marca d'água "STARK INDUSTRIES" */
+    .dossier-card::before {
+      content: 'STARK INDUSTRIES';
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      font-family: var(--font-hud);
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      color: var(--text-dim);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    /* Cantos vermelhos (hackeado pelo Deadpool) */
+    .dossier-card::after {
+      content: '// HACKED';
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      color: var(--dp-red-mid);
+      opacity: 0.5;
+    }
+
+    /* Borda superior vermelha */
+    .dossier-card { border-top: 1px solid rgba(192, 0, 26, 0.4); }
+
+    .dossier-field {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      align-items: baseline;
+    }
+
+    .dossier-field:last-child { border-bottom: none; }
+
+    .dossier-field__key {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .dossier-field__val {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-primary);
+    }
+
+    .dossier-field__val--accent { color: var(--dp-red-mid); }
+    .dossier-field__val--blue   { color: var(--si-blue-glow); }
+    .dossier-field__val--green  { color: #22c55e; }
+
+    /* Skills (direita) */
+    .about-skills {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+
+    .about-bio {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 40px;
+    }
+
+    .skills-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 480px) { .skills-grid { grid-template-columns: 1fr; } }
+
+    .skill-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .skill-item__label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .skill-item__name {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .skill-item__pct {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .skill-bar {
+      height: 1px;
+      background: var(--border-subtle);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skill-bar__fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 0; /* animado via JS */
+      transition: width 1.2s var(--ease-out);
+    }
+
+    .skill-bar__fill--red  { background: var(--dp-red-mid); }
+    .skill-bar__fill--blue { background: var(--si-blue-glow); }
+
+    /* ══════════════════════════════════════════════
+       12. SEÇÃO — PROJETOS
+       ══════════════════════════════════════════════ */
+    #projects {
+      padding: 120px 64px;
+      background: var(--bg-deep);
+      position: relative;
+    }
+
+    @media (max-width: 768px) { #projects { padding: 80px 24px; } }
+
+    /* Grade de projetos */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1px;
+      background: var(--border-subtle); /* as bordas são o gap */
+      border: 1px solid var(--border-subtle);
+      margin-top: 64px;
+    }
+
+    .project-card {
+      background: var(--bg-void);
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: background 0.3s;
+    }
+
+    .project-card:hover { background: var(--bg-panel); }
+
+    /* Linha colorida no hover */
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--dp-red-mid), var(--si-blue-glow));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s var(--ease-out);
+    }
+
+    .project-card:hover::before { transform: scaleX(1); }
+
+    .project-card__id {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .project-card__title {
+      font-family: var(--font-hud);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .project-card__desc {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .project-card__stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-dim);
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .project-card:hover .tag {
+      border-color: var(--border-active);
+      color: var(--text-secondary);
+    }
+
+    .project-card__links {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .project-link {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--text-dim);
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Linha decorativa à esquerda do link */
+    .project-link::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 1px;
+      background: currentColor;
+      transition: width 0.3s var(--ease-out);
+    }
+
+    .project-link--primary { color: var(--dp-red-mid); }
+    .project-link--secondary { color: var(--si-blue-glow); }
+
+    .project-link:hover::before { width: 24px; }
+
+    /* ══════════════════════════════════════════════
+       13. SEÇÃO — CONTATO
+       ══════════════════════════════════════════════ */
+    #contact {
+      padding: 120px 64px;
+      background: var(--bg-void);
+      position: relative;
+    }
+
+    @media (max-width: 768px) { #contact { padding: 80px 24px; } }
+
+    .contact-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      margin-top: 64px;
+    }
+
+    @media (max-width: 900px) {
+      .contact-wrap { grid-template-columns: 1fr; gap: 48px; }
+    }
+
+    .contact-info { opacity: 0; transform: translateX(-20px); }
+    .contact-form-wrap { opacity: 0; transform: translateX(20px); }
+
+    .contact-desc {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 40px;
+      max-width: 380px;
+    }
+
+    .contact-channels {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .contact-channel {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 16px;
+      align-items: center;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+
+    .contact-channel:last-child { border-bottom: none; }
+    .contact-channel:hover { background: var(--bg-panel); }
+
+    .contact-channel__type {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .contact-channel__value {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    /* Formulário */
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .form-input,
+    .form-textarea {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 14px 18px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.25s;
+      resize: none;
+      -webkit-appearance: none;
+        }
+
+    .form-input:focus,
+    .form-textarea:focus {
+      border-color: rgba(61, 155, 255, 0.4);
+    }
+
+    .form-textarea { min-height: 120px; }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder { color: var(--text-dim); }
+
+    /* ══════════════════════════════════════════════
+       14. FOOTER
+       ══════════════════════════════════════════════ */
+    footer {
+      background: var(--bg-deep);
+      border-top: 1px solid var(--border-subtle);
+      padding: 32px 64px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) { footer { padding: 24px; } }
+
+    .footer-left {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .footer-left strong {
+      color: var(--dp-red-mid);
+      font-weight: 400;
+    }
+
+    .footer-right {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+    }
+
+    /* ══════════════════════════════════════════════
+       15. UTILITÁRIOS
+       ══════════════════════════════════════════════ */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <h2 class="sr-only">Portfolio Full Stack Developer — Stark Industries × DEV.LAB</h2>
+
+  <!-- Cursor personalizado -->
+  <div id="cursor" aria-hidden="true"></div>
+  <div id="cursor-ring" aria-hidden="true"></div>
+
+  <!-- Scanlines CRT -->
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <!-- ─────────────────────────────────────────────
+       NAVEGAÇÃO
+       ───────────────────────────────────────────── -->
+  <nav aria-label="Navegação principal">
+    <div class="nav__logo">
+      DEV.LAB
+      <span class="nav__logo-sep" aria-hidden="true"></span>
+      <span class="nav__logo-sub">STARK INDUSTRIES OS v9.4</span>
+    </div>
+
+    <ul class="nav__links" role="list">
+      <li><a href="#about">Sobre</a></li>
+      <li><a href="#projects">Projetos</a></li>
+      <li><a href="#contact">Contato</a></li>
+    </ul>
+
+    <div class="nav__status" aria-hidden="true">
+      <span class="nav__status-dot"></span>
+      SISTEMA ONLINE
+    </div>
+  </nav>
+
+  <!-- ─────────────────────────────────────────────
+       HERO SECTION
+       ───────────────────────────────────────────── -->
+  <section id="hero" aria-label="Apresentação">
+
+    <!-- Grade decorativa de fundo -->
+    <div class="grid-overlay" aria-hidden="true"></div>
+
+    <!-- Linha divisória central -->
+    <div class="hero__divider" aria-hidden="true">
+      <div class="hero__divider-inner"></div>
+    </div>
+
+    <!-- ── ESQUERDA — Conteúdo principal ── -->
+    <div class="hero__left">
+
+      <p class="hero__eyebrow" aria-hidden="true">
+        STARK INDUSTRIES — ARQUIVO HACKEADO
+      </p>
+
+      <h1>
+        <!--
+          O atributo data-text deve ser igual ao texto
+          visível. É usado pelos pseudo-elementos do glitch.
+        -->
+        <span
+          class="hero__title hero__title--glitch"
+          data-text="FULL STACK"
+          aria-label="Full Stack Developer"
+        >FULL STACK</span>
+        <br>
+        <span class="hero__title" style="color: var(--si-blue-glow);">
+          DEVELOPER
+        </span>
+      </h1>
+
+      <p class="hero__subtitle">
+        Interfaces que funcionam como tecnologia Stark
+        e surpreendem como o Deadpool — sem aviso prévio.
+      </p>
+
+      <div class="hero__ctas">
+        <a href="#projects" class="btn btn--primary">Ver Projetos</a>
+        <a href="#contact"  class="btn btn--ghost">Iniciar Contato</a>
+      </div>
+
+      <!-- Coordenadas HUD (decorativo) -->
+      <div class="hero__coords" aria-hidden="true">
+        <span>LAT 23.5505° S / LNG 46.6333° W</span>
+        <span>UPTIME 99.97% — BUILD #2025.06</span>
+      </div>
+
+    </div>
+
+    <!-- ── DIREITA — Containers dos personagens ── -->
+    <div class="hero__right">
+
+      <!--
+        ╔══════════════════════════════════════════╗
+        ║  CONTAINER — DEADPOOL                   ║
+        ║                                          ║
+        ║  Para usar uma IMAGEM:                   ║
+        ║  1. Remova .asset-silhouette abaixo.     ║
+        ║  2. Adicione dentro de .asset-placeholder║
+        ║     um <img src="deadpool.png"           ║
+        ║     alt="Deadpool"                       ║
+        ║     style="height:90%;object-fit:contain"║
+        ║     >                                    ║
+        ║                                          ║
+        ║  Para usar THREE.JS (.glb / .gltf):      ║
+        ║  1. Remova .asset-silhouette.            ║
+        ║  2. Mude display:none → block no         ║
+        ║     <canvas class="asset-canvas">.       ║
+        ║  3. No JS, inicialize o renderer com:    ║
+        ║     const renderer = new THREE.          ║
+        ║     WebGLRenderer({                      ║
+        ║       canvas: document.getElementById(  ║
+        ║         'canvas-dp'),                    ║
+        ║       alpha: true                        ║
+        ║     });                                  ║
+        ║  4. Carregue: loader.load(               ║
+        ║     './deadpool.glb', gltf => {          ║
+        ║       scene.add(gltf.scene);             ║
+        ║     });                                  ║
+        ╚══════════════════════════════════════════╝
+      -->
+      <div class="asset-container asset-container--dp" role="img" aria-label="Área do personagem Deadpool">
+
+        <div class="hud-corners" aria-hidden="true"><span></span></div>
+
+        <div class="asset-container__tag" aria-hidden="true">
+          <span class="asset-container__tag-dot"></span>
+          DP-X // WEAPON-X
+        </div>
+
+        <!-- Barra de scan -->
+        <div class="asset-scanbar" aria-hidden="true"></div>
+
+        <!-- Placeholder visual — remova quando tiver o asset real -->
+        <div class="asset-placeholder" aria-hidden="true">
+          <div class="asset-silhouette"></div>
+        </div>
+
+        <!-- Canvas Three.js (oculto por padrão) -->
+        <canvas
+          id="canvas-dp"
+          class="asset-canvas"
+          aria-hidden="true"
+        ></canvas>
+
+        <span class="asset-label" aria-hidden="true">DEADPOOL // ASSET PENDING</span>
+      </div>
+
+      <!--
+        ╔══════════════════════════════════════════╗
+        ║  CONTAINER — IRON MAN / TONY STARK      ║
+        ║                                          ║
+        ║  Mesma lógica acima, mas use o canvas:  ║
+        ║  id="canvas-si" para o Iron Man.         ║
+        ╚══════════════════════════════════════════╝
+      -->
+      <div class="asset-container asset-container--si" role="img" aria-label="Área do personagem Iron Man">
+
+        <div class="hud-corners" aria-hidden="true"><span></span></div>
+
+        <div class="asset-container__tag" aria-hidden="true">
+          <span class="asset-container__tag-dot"></span>
+          SI // MARK-L
+        </div>
+
+        <div class="asset-scanbar" aria-hidden="true"></div>
+
+        <div class="asset-placeholder" aria-hidden="true">
+          <div class="asset-silhouette"></div>
+        </div>
+
+        <canvas
+          id="canvas-si"
+          class="asset-canvas"
+          aria-hidden="true"
+        ></canvas>
+
+        <span class="asset-label" aria-hidden="true">IRON MAN // ASSET PENDING</span>
+      </div>
+
+    </div><!-- /hero__right -->
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator" aria-hidden="true">
+      <span class="scroll-indicator__label">Scroll</span>
+      <div class="scroll-indicator__line"></div>
+    </div>
+
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       FAIXA DE STATS
+       ───────────────────────────────────────────── -->
+  <div id="stats" aria-label="Dados do desenvolvedor">
+
+    <div class="stat-item">
+      <div class="stat-item__value stat-item__value--red" data-target="5">0</div>
+      <div class="stat-item__label">Anos de Experiência</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="stat-item__value stat-item__value--blue" data-target="38">0</div>
+      <div class="stat-item__label">Projetos Entregues</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="stat-item__value" data-target="12">0</div>
+      <div class="stat-item__label">Clientes Atendidos</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="stat-item__value" data-target="99">0</div>
+      <div class="stat-item__label">Uptime Médio (%)</div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────────────────────────────────────
+       SOBRE — DOSSIER
+       ───────────────────────────────────────────── -->
+  <section id="about" aria-label="Sobre o desenvolvedor">
+
+    <div class="section-header">
+      <p class="section-eyebrow" aria-hidden="true">
+        Prontuário do Sistema
+      </p>
+      <h2 class="section-title">Dossier<br>Pessoal</h2>
+    </div>
+
+    <div class="about-grid">
+
+      <!-- Card glassmorphism com dados -->
+      <div class="dossier-card">
+        <div class="dossier-field">
+          <span class="dossier-field__key">Codinome</span>
+          <span class="dossier-field__val dossier-field__val--accent">// SEU NOME</span>
+        </div>
+        <div class="dossier-field">
+          <span class="dossier-field__key">Função</span>
+          <span class="dossier-field__val">Full Stack Developer</span>
+        </div>
+        <div class="dossier-field">
+          <span class="dossier-field__key">Base</span>
+          <span class="dossier-field__val">Brasil — Remote-first</span>
+        </div>
+        <div class="dossier-field">
+          <span class="dossier-field__key">Senioridade</span>
+          <span class="dossier-field__val">Pleno / Sênior</span>
+        </div>
+        <div class="dossier-field">
+          <span class="dossier-field__key">Clearance</span>
+          <span class="dossier-field__val dossier-field__val--blue">Nível 7 — S.H.I.E.L.D.</span>
+        </div>
+        <div class="dossier-field">
+          <span class="dossier-field__key">Status</span>
+          <span class="dossier-field__val dossier-field__val--green">Disponível</span>
+        </div>
+      </div>
+
+      <!-- Skills + bio -->
+      <div class="about-skills">
+
+        <p class="about-bio">
+          Desenvolvedor apaixonado por sistemas de alto impacto e interfaces
+          que desafiam o convencional. Combino a precisão de engenharia de Tony Stark
+          com a criatividade disruptiva do Deadpool — código limpo, entrega rápida,
+          zero pedido de desculpas pelo resultado.
+        </p>
+
+        <div class="skills-grid">
+
+          <div class="skill-item">
+            <div class="skill-item__label">
+              <span class="skill-item__name">React / Next</span>
+              <span class="skill-item__pct">95%</span>
+            </div>
+            <div class="skill-bar">
+              <div class="skill-bar__fill skill-bar__fill--red" data-width="95"></div>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="skill-item__label">
+              <span class="skill-item__name">Node / APIs</span>
+              <span class="skill-item__pct">92%</span>
+            </div>
+            <div class="skill-bar">
+              <div class="skill-bar__fill skill-bar__fill--blue" data-width="92"></div>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="skill-item__label">
+              <span class="skill-item__name">TypeScript</span>
+              <span class="skill-item__pct">90%</span>
+            </div>
+            <div class="skill-bar">
+              <div class="skill-bar__fill skill-bar__fill--red" data-width="90"></div>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="skill-item__label">
+              <span class="skill-item__name">Banco de Dados</span>
+              <span class="skill-item__pct">85%</span>
+            </div>
+            <div class="skill-bar">
+              <div class="skill-bar__fill skill-bar__fill--blue" data-width="85"></div>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="skill-item__label">
+              <span class="skill-item__name">DevOps / Cloud</span>
+              <span class="skill-item__pct">78%</span>
+            </div>
+            <div class="skill-bar">
+              <div class="skill-bar__fill skill-bar__fill--red" data-width="78"></div>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="skill-item__label">
+              <span class="skill-item__name">UI / Motion</span>
+              <span class="skill-item__pct">88%</span>
+            </div>
+            <div class="skill-bar">
+              <div class="skill-bar__fill skill-bar__fill--blue" data-width="88"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       PROJETOS
+       ───────────────────────────────────────────── -->
+  <section id="projects" aria-label="Projetos">
+
+    <div class="section-header">
+      <p class="section-eyebrow" aria-hidden="true">
+        Registros de Missão
+      </p>
+      <h2 class="section-title">Projetos<br>Operacionais</h2>
+    </div>
+
+    <div class="projects-grid">
+
+      <article class="project-card">
+        <p class="project-card__id">PRJ-001 // DEPLOYED</p>
+        <h3 class="project-card__title">Stark Dashboard</h3>
+        <p class="project-card__desc">
+          Painel analítico em tempo real com visualizações de dados
+          via WebSocket. Arquitetura de microsserviços com alta disponibilidade.
+        </p>
+        <ul class="project-card__stack" aria-label="Stack tecnológica">
+          <li class="tag">React</li>
+          <li class="tag">Node.js</li>
+          <li class="tag">WebSocket</li>
+          <li class="tag">PostgreSQL</li>
+        </ul>
+        <div class="project-card__links">
+          <a href="#" class="project-link project-link--primary">Demo</a>
+          <a href="#" class="project-link project-link--secondary">Código</a>
+        </div>
+      </article>
+
+      <article class="project-card">
+        <p class="project-card__id">PRJ-002 // EM CAMPO</p>
+        <h3 class="project-card__title">Deadpool API</h3>
+        <p class="project-card__desc">
+          API REST de alta performance com OAuth2, rate limiting inteligente
+          e documentação interativa. Processa 10k+ req/s.
+        </p>
+        <ul class="project-card__stack" aria-label="Stack tecnológica">
+          <li class="tag">TypeScript</li>
+          <li class="tag">Fastify</li>
+          <li class="tag">Redis</li>
+          <li class="tag">Docker</li>
+        </ul>
+        <div class="project-card__links">
+          <a href="#" class="project-link project-link--primary">Demo</a>
+          <a href="#" class="project-link project-link--secondary">Código</a>
+        </div>
+      </article>
+
+      <article class="project-card">
+        <p class="project-card__id">PRJ-003 // CLASSIFIED</p>
+        <h3 class="project-card__title">Weapon-X E-Comm</h3>
+        <p class="project-card__desc">
+          Plataforma e-commerce multi-tenant com checkout otimizado e sistema
+          de recomendação por ML integrado ao backend.
+        </p>
+        <ul class="project-card__stack" aria-label="Stack tecnológica">
+          <li class="tag">Next.js</li>
+          <li class="tag">Stripe</li>
+          <li class="tag">Python</li>
+          <li class="tag">AWS</li>
+        </ul>
+        <div class="project-card__links">
+          <a href="#" class="project-link project-link--primary">Demo</a>
+          <a href="#" class="project-link project-link--secondary">Código</a>
+        </div>
+      </article>
+
+      <article class="project-card">
+        <p class="project-card__id">PRJ-004 // DEPLOYED</p>
+        <h3 class="project-card__title">Jarvis Mobile</h3>
+        <p class="project-card__desc">
+          App cross-platform com animações nativas a 60fps, modo offline-first
+          e sincronização em background transparente ao usuário.
+        </p>
+        <ul class="project-card__stack" aria-label="Stack tecnológica">
+          <li class="tag">React Native</li>
+          <li class="tag">Expo</li>
+          <li class="tag">GraphQL</li>
+          <li class="tag">SQLite</li>
+        </ul>
+        <div class="project-card__links">
+          <a href="#" class="project-link project-link--primary">Demo</a>
+          <a href="#" class="project-link project-link--secondary">Código</a>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       CONTATO
+       ───────────────────────────────────────────── -->
+  <section id="contact" aria-label="Contato">
+
+    <div class="section-header">
+      <p class="section-eyebrow" aria-hidden="true">
+        Canal de Comunicação
+      </p>
+      <h2 class="section-title">Iniciar<br>Contato</h2>
+    </div>
+
+    <div class="contact-wrap">
+
+      <div class="contact-info">
+        <p class="contact-desc">
+          Disponível para projetos freelance, posições full-time
+          ou aquele projeto insano que ninguém mais tem coragem de tocar.
+        </p>
+
+        <div class="contact-channels">
+          <a href="mailto:seu@email.com" class="contact-channel">
+            <span class="contact-channel__type">Email</span>
+            <span class="contact-channel__value">seu@email.com</span>
+          </a>
+          <a href="https://github.com/seuusuario" class="contact-channel" target="_blank" rel="noopener">
+            <span class="contact-channel__type">GitHub</span>
+            <span class="contact-channel__value">github.com/seuusuario</span>
+          </a>
+          <a href="https://linkedin.com/in/seuperfil" class="contact-channel" target="_blank" rel="noopener">
+            <span class="contact-channel__type">LinkedIn</span>
+            <span class="contact-channel__value">linkedin.com/in/seuperfil</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="contact-form-wrap">
+        <form class="form" action="#" method="post" novalidate>
+
+          <div class="form-group">
+            <label class="form-label" for="f-name">Identificação</label>
+            <input
+              id="f-name"
+              class="form-input"
+              type="text"
+              name="name"
+              placeholder="Seu nome"
+              autocomplete="name"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="f-email">Canal de Resposta</label>
+            <input
+              id="f-email"
+              class="form-input"
+              type="email"
+              name="email"
+              placeholder="seu@email.com"
+              autocomplete="email"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="f-msg">Briefing da Missão</label>
+            <textarea
+              id="f-msg"
+              class="form-textarea"
+              name="message"
+              placeholder="Descreva o projeto..."
+              required
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn btn--primary" style="align-self:flex-start">
+            Transmitir Mensagem
+          </button>
+
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────
+       FOOTER
+       ───────────────────────────────────────────── -->
+  <footer>
+    <p class="footer-left">
+      © 2025 <strong>DEV.LAB</strong> — Stark Industries OS
+    </p>
+    <p class="footer-right">
+      React · GSAP · Three.js · TypeScript
+    </p>
+  </footer>
+
+  <!-- ─────────────────────────────────────────────
+       JAVASCRIPT
+       ───────────────────────────────────────────── -->
+  <script>
+    "use strict";
+
+    /* ══════════════════════════════════════════════
+       CURSOR
+       ══════════════════════════════════════════════ */
+    (function initCursor() {
+      const cursor = document.getElementById("cursor");
+      const ring   = document.getElementById("cursor-ring");
+      if (!cursor || !ring) return;
+
+      let rx = -100, ry = -100; // ring position (lagged)
+      let tx = -100, ty = -100; // target (dot follows immediately)
+
+      document.addEventListener("mousemove", (e) => {
+        tx = e.clientX;
+        ty = e.clientY;
+        cursor.style.left = tx + "px";
+        cursor.style.top  = ty + "px";
+      });
+
+      function animateRing() {
+        rx += (tx - rx) * 0.1;
+        ry += (ty - ry) * 0.1;
+        ring.style.left = rx + "px";
+        ring.style.top  = ry + "px";
+        requestAnimationFrame(animateRing);
+      }
+      animateRing();
+    })();
+
+    /* ══════════════════════════════════════════════
+       GSAP ANIMATIONS
+       Aguarda o GSAP carregar (defer) e então roda.
+       ══════════════════════════════════════════════ */
+    window.addEventListener("load", () => {
+      if (typeof gsap === "undefined") return;
+      gsap.registerPlugin(ScrollTrigger);
+
+      /* ── Hero: entrada sequenciada ── */
+      const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      heroTl
+        .to(".hero__eyebrow",   { opacity: 1, y: 0, duration: 0.8 }, 0.2)
+        .to(".hero__title",     { opacity: 1, y: 0, duration: 0.9, stagger: 0.12 }, 0.4)
+        .to(".hero__subtitle",  { opacity: 1, y: 0, duration: 0.8 }, 0.8)
+        .to(".hero__ctas",      { opacity: 1, y: 0, duration: 0.7 }, 1.0)
+        .to(".hero__coords",    { opacity: 1, duration: 1.0 }, 1.2)
+        .to(".scroll-indicator",{ opacity: 1, duration: 0.8 }, 1.3);
+
+      /* ── Stats: count-up ao entrar na viewport ── */
+      document.querySelectorAll(".stat-item").forEach((item, i) => {
+        const valueEl = item.querySelector(".stat-item__value");
+        const target  = parseInt(valueEl.dataset.target, 10);
+
+        ScrollTrigger.create({
+          trigger: "#stats",
+          start:   "top 80%",
+          once:    true,
+          onEnter() {
+            // Fade-in do item
+            gsap.to(item, {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              delay: i * 0.1,
+              ease: "power2.out"
+            });
+
+            // Count-up
+            const obj = { val: 0 };
+            gsap.to(obj, {
+              val: target,
+              duration: 1.6,
+              delay: i * 0.1,
+              ease: "power2.out",
+              onUpdate() {
+                valueEl.textContent = Math.round(obj.val);
+              }
+            });
+          }
+        });
+      });
+
+      /* ── About ── */
+      ScrollTrigger.create({
+        trigger: "#about",
+        start:   "top 75%",
+        once:    true,
+        onEnter() {
+          gsap.to(".section-header", { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" });
+          gsap.to(".dossier-card",   { opacity: 1, x: 0, duration: 0.9, delay: 0.15, ease: "power2.out" });
+          gsap.to(".about-skills",   { opacity: 1, x: 0, duration: 0.9, delay: 0.25, ease: "power2.out" });
+
+          // Animar barras de skill
+          setTimeout(() => {
+            document.querySelectorAll(".skill-bar__fill").forEach((bar) => {
+              bar.style.width = bar.dataset.width + "%";
+            });
+          }, 400);
+        }
+      });
+
+      /* ── Projects ── */
+      document.querySelectorAll(".project-card").forEach((card, i) => {
+        ScrollTrigger.create({
+          trigger: card,
+          start:   "top 85%",
+          once:    true,
+          onEnter() {
+            gsap.to(card, {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              delay: i * 0.08,
+              ease: "power2.out"
+            });
+          }
+        });
+      });
+
+      /* ── Contact ── */
+      ScrollTrigger.create({
+        trigger: "#contact",
+        start:   "top 75%",
+        once:    true,
+        onEnter() {
+          // Reutiliza o section-header — garante visibilidade se não foi triggerado antes
+          const header = document.querySelector("#contact .section-header");
+          if (header) gsap.to(header, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" });
+
+          gsap.to(".contact-info",      { opacity: 1, x: 0, duration: 0.9, delay: 0.1, ease: "power2.out" });
+          gsap.to(".contact-form-wrap", { opacity: 1, x: 0, duration: 0.9, delay: 0.2, ease: "power2.out" });
+        }
+      });
+
+      /* ── Nav: fundo no scroll ── */
+      ScrollTrigger.create({
+        start:  "top -80",
+        onUpdate(self) {
+          const nav = document.querySelector("nav");
+          if (!nav) return;
+          if (self.progress > 0) {
+            nav.style.background = "rgba(3, 3, 10, 0.95)";
+          } else {
+            nav.style.background = "rgba(3, 3, 10, 0.75)";
+          }
+        }
+      });
+    });
+
+    /* ══════════════════════════════════════════════
+       PLACEHOLDER PARA THREE.JS
+       ──────────────────────────────────────────────
+       Quando você tiver os arquivos .glb / .gltf:
+
+       import * as THREE from 'three';
+       import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+       import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+       function initCharacter(canvasId, modelPath, color) {
+         const canvas   = document.getElementById(canvasId);
+         canvas.style.display = 'block';         // mostrar canvas
+         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+         renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+         renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+         const scene  = new THREE.Scene();
+         const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+         camera.position.set(0, 1.2, 3.5);
+
+         const hemi = new THREE.HemisphereLight(color, 0x000000, 1.4);
+         scene.add(hemi);
+         const spot = new THREE.SpotLight(color, 2, 8, Math.PI / 6);
+         spot.position.set(1, 3, 2);
+         scene.add(spot);
+
+         const loader = new GLTFLoader();
+         loader.load(modelPath, (gltf) => {
+           scene.add(gltf.scene);
+           // Opcional: gltf.animations para AnimationMixer
+         });
+
+         // Rotação suave com mouse
+         let targetRotY = 0;
+         document.addEventListener('mousemove', (e) => {
+           targetRotY = (e.clientX / window.innerWidth - 0.5) * 0.4;
+         });
+
+         function tick() {
+           requestAnimationFrame(tick);
+           if (scene.children.length > 2) {
+             scene.children[2].rotation.y += (targetRotY - scene.children[2].rotation.y) * 0.05;
+           }
+           renderer.render(scene, camera);
+         }
+         tick();
+       }
+
+       // Chame assim:
+       initCharacter('canvas-dp', './assets/deadpool.glb',  0xC0001A);
+       initCharacter('canvas-si', './assets/ironman.glb',   0x0A4CFF);
+       ══════════════════════════════════════════════ */
+  </script>
+
+</body>
+</html>
